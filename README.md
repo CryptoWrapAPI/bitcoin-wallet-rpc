@@ -56,9 +56,9 @@ API documentation will be available at:
 
 <!-- # Derive addresses from mnemonic -->
 <!-- response = requests.post("http://localhost:8000/wallet/derive", json={ -->
-    <!-- "mnemonic": "your twelve word seed phrase here...", -->
-    <!-- "derivation_path": "m/44'/2'/0'/0/0", -->
-    <!-- "num_addresses": 5 -->
+<!-- "mnemonic": "your twelve word seed phrase here...", -->
+<!-- "derivation_path": "m/44'/2'/0'/0/0", -->
+<!-- "num_addresses": 5 -->
 <!-- }) -->
 
 <!-- # Check address balance -->
