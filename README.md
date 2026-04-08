@@ -2,11 +2,11 @@
 
 A lightweight, FastAPI-based microservice providing RPC interaction with the Litecoin blockchain. Designed to be integrated into larger applications, this service handles wallet derivations and blockchain interactions through a clean REST API.
 
-  Using `asyncio` to establish a persistent TCP connection to ElectrumX server.
-  Managing script hashes through `asyncio.Queue`.
-  Electrum Protocol Methods: https://electrumx.readthedocs.io/en/latest/protocol-methods.html
+The project uses `asyncio` to establish a persistent TCP connection to an ElectrumX server.
+Script hashes are managed via `asyncio.Queue`.
+Electrum Protocol Methods: https://electrumx.readthedocs.io/en/latest/protocol-methods.html
 
-All the script hashes are handled in-memory (RAM), though SQLite can be optionally implemented in future for persistence or Redis for managing multiple services in a distributed manner.
+All the script hashes are handled in memory, though SQLite can optionally be added in the future for persistence or Redis could beused to support distributed deployments.
 
 
 ## Features
