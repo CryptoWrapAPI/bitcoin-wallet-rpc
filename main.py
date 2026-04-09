@@ -33,12 +33,11 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # Environment variables
-ELECTRUMX_HOST = os.getenv("ELECTRUMX_HOST", "localhost")
-ELECTRUMX_PORT = int(os.getenv("ELECTRUMX_PORT", "50002"))
+ELECTRUMX_URL = os.getenv("ELECTRUMX_URL", "ssl://localhost:50002")
 IS_TESTNET = os.getenv("TESTNET", "false").lower() == "true"
 ADDRESS_HRP = "tltc" if IS_TESTNET else "ltc"
 
-log.info(f"Config: ElectrumX={ELECTRUMX_HOST}:{ELECTRUMX_PORT}, Testnet={IS_TESTNET}, HRP={ADDRESS_HRP}")
+log.info(f"Config: ElectrumX={ELECTRUMX_URL}, Testnet={IS_TESTNET}, HRP={ADDRESS_HRP}")
 
 
 # ============================================================================
@@ -82,9 +81,9 @@ class TransactionsRequest(BaseModel):
 class ElectrumXClient:
     """Simple ElectrumX TCP/SSL client for history queries."""
 
-    def __init__(self, host: str, port: int):
-        self.host = host
-        self.port = port
+    def __init__(self, url: str):
+        self.url = url
+        self.protocol, self.host, self.port = self._parse_url(url)
         self.reader: Optional[asyncio.StreamReader] = None
         self.writer: Optional[asyncio.StreamWriter] = None
         self.request_id_counter = 0
@@ -92,19 +91,47 @@ class ElectrumXClient:
         self.logger = logging.getLogger(f"{__name__}.ElectrumXClient")
         self.connected = False
 
+    def _parse_url(self, url: str) -> tuple[str, str, int]:
+        """Parse connection URL like ssl://host:port or tcp://host:port."""
+        if "://" not in url:
+            raise ValueError(f"Invalid URL format. Expected protocol://host:port, got: {url}")
+        
+        protocol, rest = url.split("://", 1)
+        protocol = protocol.lower()
+        
+        if protocol not in ("ssl", "tcp"):
+            raise ValueError(f"Unsupported protocol '{protocol}'. Use 'ssl' or 'tcp'")
+        
+        if ":" not in rest:
+            raise ValueError(f"Missing port in URL. Expected host:port, got: {rest}")
+        
+        host, port_str = rest.rsplit(":", 1)
+        
+        try:
+            port = int(port_str)
+        except ValueError:
+            raise ValueError(f"Invalid port number: {port_str}")
+        
+        return protocol, host, port
+
     async def connect(self):
         """Connect to ElectrumX server."""
         try:
-            self.logger.info(f"Connecting to {self.host}:{self.port}")
+            self.logger.info(f"Connecting to {self.url} ({self.protocol.upper()})")
+
+            if self.protocol == "ssl":
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+                self.reader, self.writer = await asyncio.open_connection(
+                    self.host, self.port, ssl=context
+                )
+            else:  # tcp
+                self.reader, self.writer = await asyncio.open_connection(
+                    self.host, self.port
+                )
             
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
-            
-            self.reader, self.writer = await asyncio.open_connection(
-                self.host, self.port, ssl=context
-            )
-            self.logger.info(f"✓ Connected to {self.host}:{self.port}")
+            self.logger.info(f"✓ Connected to {self.url}")
             
             # Handshake
             response = await self._send_request("server.version", ["wallet-rpc", "1.4"], request_id=0)
@@ -324,7 +351,7 @@ async def lifespan(app: FastAPI):
     log.info("Starting Litecoin Wallet RPC (MVP)")
     
     # Connect to ElectrumX
-    electrum_client = ElectrumXClient(ELECTRUMX_HOST, ELECTRUMX_PORT)
+    electrum_client = ElectrumXClient(ELECTRUMX_URL)
     try:
         await electrum_client.connect()
         yield
