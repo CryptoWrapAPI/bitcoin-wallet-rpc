@@ -12,42 +12,42 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Read script hashes from file
-readarray -t SCRIPT_HASHES < "$SCRIPT_HASHES_FILE"
+# Read wallet addresses from file
+readarray -t ADDRESSES < "$SCRIPT_HASHES_FILE"
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}Test: Subscribe to Script Hash Updates${NC}"
+echo -e "${BLUE}Test: Subscribe to Wallet Address Updates${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-echo -e "${YELLOW}Script hashes to subscribe: ${#SCRIPT_HASHES[@]}${NC}"
+echo -e "${YELLOW}Wallet addresses to subscribe: ${#ADDRESSES[@]}${NC}"
 echo ""
 
-# Display the hashes being subscribed
-for i in "${!SCRIPT_HASHES[@]}"; do
-    echo -e "${YELLOW}  [$((i+1))] ${SCRIPT_HASHES[$i]}${NC}"
+# Display the addresses being subscribed
+for i in "${!ADDRESSES[@]}"; do
+    echo -e "${YELLOW}  [$((i+1))] ${ADDRESSES[$i]}${NC}"
 done
 echo ""
 
-# Build JSON array of script hashes using printf with commas
-HASHES_JSON=""
-for hash in "${SCRIPT_HASHES[@]}"; do
-    if [ -z "$HASHES_JSON" ]; then
-        HASHES_JSON="\"$hash\""
+# Build JSON array of addresses using printf with commas
+ADDRESSES_JSON=""
+for addr in "${ADDRESSES[@]}"; do
+    if [ -z "$ADDRESSES_JSON" ]; then
+        ADDRESSES_JSON="\"$addr\""
     else
-        HASHES_JSON="$HASHES_JSON, \"$hash\""
+        ADDRESSES_JSON="$ADDRESSES_JSON, \"$addr\""
     fi
 done
-PAYLOAD="{\"script_hashes\": [$HASHES_JSON], \"webhook_url\": \"https://webhook.example.com/notify\"}"
+PAYLOAD="{\"addresses\": [$ADDRESSES_JSON], \"webhook_url\": \"https://webhook.example.com/notify\"}"
 
 # Subscribe without webhook
 echo -e "\n${YELLOW}[1] Subscribing to updates (no webhook)...${NC}"
 echo -e "${BLUE}curl -X POST ${BASE_URL}/subscribe \\${NC}"
 echo -e "${BLUE}  -H 'Content-Type: application/json' \\${NC}"
-echo -e "${BLUE}  -d '{\"script_hashes\": [${#SCRIPT_HASHES[@]} hashes]}'${NC}"
+echo -e "${BLUE}  -d '{\"addresses\": [${#ADDRESSES[@]} addresses]}'${NC}"
 echo ""
 
 RESPONSE=$(curl -s -X POST "${BASE_URL}/subscribe" \
   -H "Content-Type: application/json" \
-  -d "{\"script_hashes\": [$HASHES_JSON]}")
+  -d "{\"addresses\": [$ADDRESSES_JSON]}")
 
 echo "$RESPONSE" | jq .
 echo ""
@@ -56,7 +56,7 @@ echo ""
 echo -e "\n${YELLOW}[2] Subscribing again with webhook URL...${NC}"
 echo -e "${BLUE}curl -X POST ${BASE_URL}/subscribe \\${NC}"
 echo -e "${BLUE}  -H 'Content-Type: application/json' \\${NC}"
-echo -e "${BLUE}  -d '{\"script_hashes\": [...], \"webhook_url\": \"https://webhook.example.com/notify\"}'${NC}"
+echo -e "${BLUE}  -d '{\"addresses\": [...], \"webhook_url\": \"https://webhook.example.com/notify\"}'${NC}"
 echo ""
 
 RESPONSE=$(curl -s -X POST "${BASE_URL}/subscribe" \

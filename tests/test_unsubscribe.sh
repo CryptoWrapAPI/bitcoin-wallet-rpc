@@ -12,18 +12,18 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Read script hashes from file
-readarray -t SCRIPT_HASHES < "$SCRIPT_HASHES_FILE"
+# Read wallet addresses from file
+readarray -t ADDRESSES < "$SCRIPT_HASHES_FILE"
 
 echo -e "\n${BLUE}═══════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}Test: Unsubscribe from Script Hash Updates${NC}"
+echo -e "${BLUE}Test: Unsubscribe from Wallet Address Updates${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-echo -e "${YELLOW}Script hashes to unsubscribe: ${#SCRIPT_HASHES[@]}${NC}"
+echo -e "${YELLOW}Wallet addresses to unsubscribe: ${#ADDRESSES[@]}${NC}"
 echo ""
 
-# Display the hashes being unsubscribed
-for i in "${!SCRIPT_HASHES[@]}"; do
-    echo -e "${YELLOW}  [$((i+1))] ${SCRIPT_HASHES[$i]}${NC}"
+# Display the addresses being unsubscribed
+for i in "${!ADDRESSES[@]}"; do
+    echo -e "${YELLOW}  [$((i+1))] ${ADDRESSES[$i]}${NC}"
 done
 echo ""
 
@@ -38,22 +38,22 @@ BEFORE_COUNT=$(echo "$BEFORE" | jq '.total_subscriptions')
 echo -e "${YELLOW}Current subscriptions: $BEFORE_COUNT${NC}"
 echo ""
 
-# Build JSON array of script hashes using printf with commas
-HASHES_JSON=""
-for hash in "${SCRIPT_HASHES[@]}"; do
-    if [ -z "$HASHES_JSON" ]; then
-        HASHES_JSON="\"$hash\""
+# Build JSON array of addresses using printf with commas
+ADDRESSES_JSON=""
+for addr in "${ADDRESSES[@]}"; do
+    if [ -z "$ADDRESSES_JSON" ]; then
+        ADDRESSES_JSON="\"$addr\""
     else
-        HASHES_JSON="$HASHES_JSON, \"$hash\""
+        ADDRESSES_JSON="$ADDRESSES_JSON, \"$addr\""
     fi
 done
-PAYLOAD="{\"script_hashes\": [$HASHES_JSON]}"
+PAYLOAD="{\"addresses\": [$ADDRESSES_JSON]}"
 
 # Unsubscribe
-echo -e "\n${YELLOW}[2] Unsubscribing from all script hashes...${NC}"
+echo -e "\n${YELLOW}[2] Unsubscribing from all wallet addresses...${NC}"
 echo -e "${BLUE}curl -X DELETE ${BASE_URL}/subscribe \\${NC}"
 echo -e "${BLUE}  -H 'Content-Type: application/json' \\${NC}"
-echo -e "${BLUE}  -d '{\"script_hashes\": [${#SCRIPT_HASHES[@]} hashes]}'${NC}"
+echo -e "${BLUE}  -d '{\"addresses\": [${#ADDRESSES[@]} addresses]}'${NC}"
 echo ""
 
 UNSUBSCRIBE_RESPONSE=$(curl -s -X DELETE "${BASE_URL}/subscribe" \
