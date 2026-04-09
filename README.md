@@ -52,16 +52,21 @@ ENV_FILE=.env
 
 ### 2. Start the server
 
-```bash
-uvicorn main:app --host 127.0.0.1 --port 8000
-# or for development with reload:
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+#### Option A: Docker (Recommended)
 
-# or use FastAPI functionality (pip install fastapi[standard])
-fastapi dev
-# or
+```bash
+docker compose up --build
+```
+
+#### Option B: Local Python
+
+```bash
+pip install fastapi[standard]
 fastapi run
 ```
+
+> For development with auto-reload: `fastapi dev`
+> Alternatively, you can use uvicorn directly: `uvicorn main:app --host 127.0.0.1 --port 8000`
 
 API documentation available at `http://localhost:8000/docs`.
 
