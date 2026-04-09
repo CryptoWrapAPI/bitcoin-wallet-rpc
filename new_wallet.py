@@ -52,11 +52,30 @@ print(f"Master key (WIF): {bip84_mst_ctx.PrivateKey().ToWif()}")
 
 # Derive BIP84 account keys: m/84'/0'/0'
 bip84_acc_ctx = bip84_mst_ctx.Purpose().Coin().Account(0)
-# Derive BIP84 chain keys: m/84'/0'/0'/0
+
+# Extended public keys (useful for watch-only wallets, client-side address generation)
+master_xpub = bip84_mst_ctx.PublicKey().ToExtended()
+account_xpub = bip84_acc_ctx.PublicKey().ToExtended()
+print(f"\nMaster extended public key: {master_xpub}")
+print(f"Account extended public key (xpub): {account_xpub}")
+
+# Derive addresses from xpub only (no private key access needed)
+from bip_utils import Bip84
+xpub_ctx = Bip84.FromExtendedKey(account_xpub, NETWORK_TYPE)
+print("\nAddresses derived from xpub (watch-only):")
+xpub_receiving = xpub_ctx.Change(Bip44Changes.CHAIN_EXT)
+xpub_change = xpub_ctx.Change(Bip44Changes.CHAIN_INT)
+for i in range(ADDR_NUM):
+    recv_addr = xpub_receiving.AddressIndex(i).PublicKey().ToAddress()
+    change_addr = xpub_change.AddressIndex(i).PublicKey().ToAddress()
+    print(f"  Receiving [{i}]: {recv_addr}")
+    print(f"  Change    [{i}]: {change_addr}")
+
+# Derive BIP84 chain keys: m/84'/0'/0'/0 (with private keys)
 bip84_chg_ctx = bip84_acc_ctx.Change(Bip44Changes.CHAIN_EXT)
 
 # Derive addresses: m/84'/0'/0'/0/i
-print("Addresses:")
+print("\nAddresses (with private keys):")
 for i in range(ADDR_NUM):
     bip84_addr_ctx = bip84_chg_ctx.AddressIndex(i)
     print(
