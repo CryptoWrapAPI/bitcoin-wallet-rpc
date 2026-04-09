@@ -13,7 +13,7 @@ This will allow setting a webhook to forward notifications from the ElectrumX se
 ## Can be implemented in future:
 
   - Caching to avoid rate-limiting by ElectrumX server
-  - Using multiple ElectrumX servers for failover
+  - Using multiple ElectrumX servers for failover (rotate server from list it's failed or rate-limited)
 
 ## Features
 

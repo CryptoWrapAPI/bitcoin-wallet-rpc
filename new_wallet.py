@@ -1,4 +1,9 @@
-"""Example of keys derivation using BIP84."""
+"""
+
+Example of keys derivation using BIP84.
+Generates new seed phrase using BIP39.
+
+"""
 
 from bip_utils import (
     Bip39MnemonicGenerator,
@@ -9,9 +14,10 @@ from bip_utils import (
     Bip84Coins,
 )
 import hashlib
-
+import os
 
 ADDR_NUM: int = 5
+IS_TESTNET = os.getenv("TESTNET", "false").lower() == "true"
 
 # Generate random mnemonic
 mnemonic = Bip39MnemonicGenerator().FromWordsNumber(Bip39WordsNum.WORDS_NUM_24)
@@ -20,7 +26,7 @@ print(f"Mnemonic string: {mnemonic}")
 seed_bytes = Bip39SeedGenerator(mnemonic).Generate()
 
 # Construct from seed
-bip84_mst_ctx = Bip84.FromSeed(seed_bytes, Bip84Coins.LITECOIN_TESTNET)
+bip84_mst_ctx = Bip84.FromSeed(seed_bytes, Bip84Coins.LITECOIN_TESTNET if IS_TESTNET else Bip84Coins.LITECOIN) 
 # Print master key
 print(f"Master key (bytes): {bip84_mst_ctx.PrivateKey().Raw().ToHex()}")
 print(f"Master key (extended): {bip84_mst_ctx.PrivateKey().ToExtended()}")
@@ -60,7 +66,7 @@ def address_to_scripthash(address: str) -> str:
     # Decode the bech32 address to get the witness program
     # For Litecoin, HRP is 'ltc'
     decoder = P2WPKHAddrDecoder()
-    witness_program = decoder.DecodeAddr(address, hrp="tltc")
+    witness_program = decoder.DecodeAddr(address, hrp="ltc")
 
     # For P2WPKH, ScriptPubKey is 0x0014 + 20-byte witness program
     script_pubkey = bytes.fromhex("0014") + witness_program
