@@ -70,6 +70,11 @@ class HistoryRequest(BaseModel):
     addresses: list[str]
 
 
+class TransactionsRequest(BaseModel):
+    """Request for transaction details."""
+    tx_hashes: list[str]
+
+
 # ============================================================================
 # ElectrumX Client
 # ============================================================================
@@ -186,6 +191,119 @@ class ElectrumXClient:
         self.logger.info(f"✓ Got {len(history)} transactions for {script_hash[:16]}...")
         return history
 
+    async def _batch_requests(self, requests_list: list[tuple]) -> list[dict]:
+        """Send multiple requests in batch and read all responses.
+        
+        Args:
+            requests_list: List of (method, params, request_id) tuples
+            
+        Returns:
+            List of responses indexed by request_id
+        """
+        self.logger.debug(f"Batch sending {len(requests_list)} requests")
+        
+        # Build all requests
+        raw_requests = []
+        request_ids = set()
+        for method, params, request_id in requests_list:
+            request = {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params}
+            raw_request = json.dumps(request).encode("utf-8") + b"\n"
+            raw_requests.append(raw_request)
+            request_ids.add(request_id)
+            self.logger.debug(f"  [{request_id}] {method}")
+
+        # Send all at once
+        async with self.read_lock:
+            for raw_request in raw_requests:
+                self.writer.write(raw_request)
+            await self.writer.drain()
+            self.logger.debug(f"✓ Sent {len(raw_requests)} requests in batch")
+
+            # Now read all responses
+            responses = {}
+            buffer = b""
+            expected_count = len(requests_list)
+            received_count = 0
+
+            while received_count < expected_count:
+                if b"\n" in buffer:
+                    line, buffer = buffer.split(b"\n", 1)
+                    if line.strip():
+                        try:
+                            msg = json.loads(line.decode("utf-8"))
+                            self.logger.debug(f"<<< Received: {json.dumps(msg)[:100]}...")
+                            msg_id = msg.get("id")
+
+                            if msg_id in request_ids:
+                                responses[msg_id] = msg
+                                received_count += 1
+                                self.logger.debug(f"    ✓ Counted! Now {received_count}/{expected_count}")
+                                
+                                # Check if we have all responses - break immediately
+                                if received_count >= expected_count:
+                                    self.logger.debug(f"✓ Got all {expected_count} responses, exiting read loop")
+                                    break
+                                    
+                            else:
+                                self.logger.warning(f"[UNEXPECTED] {json.dumps(msg)[:100]}...")
+                        except json.JSONDecodeError as e:
+                            self.logger.error(f"JSON decode error: {e}")
+
+                # Only try to read more if we still need responses
+                if received_count >= expected_count:
+                    break
+                    
+                try:
+                    chunk = await asyncio.wait_for(self.reader.read(4096), timeout=30)
+                except asyncio.TimeoutError:
+                    self.logger.error(f"Timeout: got {received_count}/{expected_count} responses")
+                    raise RuntimeError(f"Timeout waiting for batch responses (got {received_count}/{expected_count})")
+
+                if not chunk:
+                    if received_count >= expected_count:
+                        break
+                    self.logger.error(f"Connection closed: got {received_count}/{expected_count} responses")
+                    raise ConnectionError(f"Server closed connection after {received_count}/{expected_count} responses")
+
+                buffer += chunk
+                self.logger.debug(f"[BUFFER] Received {len(chunk)} bytes, have {received_count}/{expected_count} responses")
+
+        self.logger.debug(f"✓ Batch complete: got all {expected_count} responses")
+        return [responses.get(req[2]) for req in requests_list]
+
+    async def get_transactions(self, tx_hashes: list[str]) -> list[dict]:
+        """Get verbose transaction details for multiple transaction hashes in batch."""
+        self.logger.info(f"Fetching details for {len(tx_hashes)} transactions")
+        
+        # Prepare batch requests
+        batch = []
+        for tx_hash in tx_hashes:
+            self.request_id_counter += 1
+            batch.append(("blockchain.transaction.get", [tx_hash, True], self.request_id_counter))
+        
+        # Send batch
+        responses = await self._batch_requests(batch)
+        
+        # Process responses
+        results = []
+        for (method, params, req_id), response in zip(batch, responses):
+            tx_hash = params[0]
+            
+            if response is None:
+                self.logger.error(f"No response for {tx_hash[:16]}...")
+                results.append({"tx_hash": tx_hash, "error": "No response from server"})
+            elif "error" in response:
+                self.logger.error(f"Error for {tx_hash[:16]}...: {response['error']}")
+                results.append({"tx_hash": tx_hash, "error": str(response['error'])})
+            else:
+                tx_data = response.get("result", {})
+                # Add tx_hash to the result
+                tx_data["tx_hash"] = tx_hash
+                self.logger.info(f"✓ Got transaction {tx_hash[:16]}...")
+                results.append(tx_data)
+        
+        return results
+
 
 # ============================================================================
 # Global State
@@ -292,3 +410,57 @@ async def get_history(request: HistoryRequest):
             raise HTTPException(status_code=500, detail=f"Error querying ElectrumX: {e}")
     
     return response
+
+
+@app.post("/transactions")
+async def get_transactions(request: TransactionsRequest):
+    """Get verbose transaction details for transaction hashes."""
+    if not electrum_client:
+        raise HTTPException(status_code=503, detail="ElectrumX not connected")
+    
+    log.info(f"Transactions request for {len(request.tx_hashes)} hashes")
+    
+    # Validate tx hashes
+    for tx_hash in request.tx_hashes:
+        if not isinstance(tx_hash, str) or len(tx_hash) != 64:
+            log.error(f"Invalid tx_hash: {tx_hash}")
+            raise HTTPException(status_code=400, detail=f"Invalid tx_hash: {tx_hash} (must be 64-char hex string)")
+    
+    # Get transactions
+    try:
+        transactions = await electrum_client.get_transactions(request.tx_hashes)
+        
+        response = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "count": len(transactions),
+            "transactions": transactions
+        }
+        
+        return response
+        
+    except ConnectionError as e:
+        # Connection error - try to reconnect once
+        log.warning(f"Connection lost: {e}, attempting to reconnect...")
+        try:
+            await electrum_client.disconnect()
+            await electrum_client.connect()
+            # Retry the query
+            transactions = await electrum_client.get_transactions(request.tx_hashes)
+            
+            response = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "count": len(transactions),
+                "transactions": transactions
+            }
+            
+            return response
+        except Exception as retry_error:
+            log.error(f"Reconnection failed: {retry_error}")
+            raise HTTPException(
+                status_code=503, 
+                detail=f"Failed to connect to ElectrumX: {retry_error}"
+            )
+    except Exception as e:
+        # Other errors - return them
+        log.error(f"Error fetching transactions: {e}")
+        raise HTTPException(status_code=500, detail=f"Error querying ElectrumX: {e}")
