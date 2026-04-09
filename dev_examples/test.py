@@ -79,9 +79,7 @@ if ADDR_NUM > 0:
     bip84_addr_ctx_0 = bip84_chg_ctx.AddressIndex(0)
     ltc_address = bip84_addr_ctx_0.PublicKey().ToAddress()
     scripthash = address_to_scripthash(ltc_address)
-    print(f"\nScript hash conversion:")
+    print("\nScript hash conversion:")
     print(f"  Address: {ltc_address}")
     print(f"  Script hash (ElectrumX format): {scripthash}")
 
-# get script hash of address with balance and txs for a test
-print("script hash 0.25: " + address_to_scripthash("ltc1qjxk9zg06kewc0xrqflzmwwaqsdd9dqzjm72qq2"))
