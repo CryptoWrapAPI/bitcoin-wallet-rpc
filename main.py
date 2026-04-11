@@ -375,24 +375,32 @@ class ElectrumXClient:
         await self.writer.drain()
         self.logger.debug(f"✓ Sent {len(requests_list)} requests in batch")
 
+        responses = {}
+        expected_ids = {request_id for _, _, request_id in requests_list}
+
+        while len(responses) < len(expected_ids):
+            try:
+                response = await asyncio.wait_for(
+                    self._response_queue.get(), timeout=30
+                )
+                msg_id = response.get("id")
+                if msg_id in expected_ids:
+                    responses[msg_id] = response
+                else:
+                    self.logger.warning(
+                        f"[UNEXPECTED] Got id={msg_id}, not in expected set {expected_ids}"
+                    )
+            except asyncio.TimeoutError:
+                self.logger.error(f"Timeout waiting for batch responses")
+                break
+
         results = []
         for method, params, request_id in requests_list:
-            try:
-                while True:
-                    response = await asyncio.wait_for(
-                        self._response_queue.get(), timeout=30
-                    )
-                    msg_id = response.get("id")
-                    if msg_id == request_id:
-                        results.append(response)
-                        break
-                    elif msg_id is not None:
-                        self.logger.warning(
-                            f"[UNEXPECTED] Got id={msg_id}, expected {request_id}"
-                        )
-            except asyncio.TimeoutError:
-                self.logger.error(f"Timeout for request {request_id}")
-                results.append({"error": "Timeout"})
+            if request_id in responses:
+                results.append(responses[request_id])
+            else:
+                self.logger.error(f"Missing response for request {request_id}")
+                results.append({"error": "Missing response"})
 
         self.logger.debug(f"✓ Batch complete: got {len(results)} responses")
         return results
