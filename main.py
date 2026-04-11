@@ -615,3 +615,134 @@ async def get_block_height():
             "last_update": last_block_update.isoformat() if last_block_update else None,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+
+@app.post("/derive")
+async def derive_address(request: DeriveRequest):
+    """Derive a wallet address from a master extended public key (BIP84).
+
+    Derivation path: m/84'/coin'/account_index'/CHAIN_EXT/address_index
+    """
+    try:
+        bip84_mst = Bip84.FromExtendedKey(request.xpub, NETWORK_TYPE)
+        bip84_acc = bip84_mst.Purpose().Coin().Account(request.account_index)
+        receiving_ctx = bip84_acc.Change(Bip44Changes.CHAIN_EXT)
+        address_ctx = receiving_ctx.AddressIndex(request.address_index)
+
+        address = address_ctx.PublicKey().ToAddress()
+
+        return {
+            "address": address,
+            "account_index": request.account_index,
+            "address_index": request.address_index,
+            "chain": "external",
+        }
+    except Exception as e:
+        log.error(f"Address derivation failed: {e}")
+        raise HTTPException(status_code=400, detail=f"Derivation failed: {e}")
+
+
+@app.post("/history")
+async def get_history(request: HistoryRequest):
+    """Get transaction history for addresses."""
+    if not electrum_client:
+        raise HTTPException(status_code=503, detail="ElectrumX not connected")
+
+    log.info(f"History request for {len(request.addresses)} addresses")
+
+    script_hashes = []
+    addr_to_hash = {}
+    for addr in request.addresses:
+        try:
+            script_hash = address_to_scripthash(addr)
+            script_hashes.append(script_hash)
+            addr_to_hash[script_hash] = addr
+        except ValueError as e:
+            log.error(f"Invalid address {addr}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+
+    response = {}
+    for script_hash in script_hashes:
+        address = addr_to_hash[script_hash]
+        try:
+            history = await electrum_client.get_history(script_hash)
+            response[address] = {
+                "transactions": history,
+                "count": len(history),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        except ConnectionError as e:
+            log.warning(f"Connection lost: {e}, attempting to reconnect...")
+            try:
+                await electrum_client.disconnect()
+                await electrum_client.connect()
+                history = await electrum_client.get_history(script_hash)
+                response[address] = {
+                    "transactions": history,
+                    "count": len(history),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            except Exception as retry_error:
+                log.error(f"Reconnection failed: {retry_error}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Failed to connect to ElectrumX: {retry_error}",
+                )
+        except Exception as e:
+            log.error(f"Error fetching history for {address}: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Error querying ElectrumX: {e}"
+            )
+
+    return response
+
+
+@app.post("/transactions")
+async def get_transactions(request: TransactionsRequest):
+    """Get verbose transaction details for transaction hashes."""
+    if not electrum_client:
+        raise HTTPException(status_code=503, detail="ElectrumX not connected")
+
+    log.info(f"Transactions request for {len(request.tx_hashes)} hashes")
+
+    for tx_hash in request.tx_hashes:
+        if not isinstance(tx_hash, str) or len(tx_hash) != 64:
+            log.error(f"Invalid tx_hash: {tx_hash}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid tx_hash: {tx_hash} (must be 64-char hex string)",
+            )
+
+    try:
+        transactions = await electrum_client.get_transactions(request.tx_hashes)
+
+        response = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "count": len(transactions),
+            "transactions": transactions,
+        }
+
+        return response
+
+    except ConnectionError as e:
+        log.warning(f"Connection lost: {e}, attempting to reconnect...")
+        try:
+            await electrum_client.disconnect()
+            await electrum_client.connect()
+            transactions = await electrum_client.get_transactions(request.tx_hashes)
+
+            response = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "count": len(transactions),
+                "transactions": transactions,
+            }
+
+            return response
+        except Exception as retry_error:
+            log.error(f"Reconnection failed: {retry_error}")
+            raise HTTPException(
+                status_code=503, detail=f"Failed to connect to ElectrumX: {retry_error}"
+            )
+    except Exception as e:
+        log.error(f"Error fetching transactions: {e}")
+        raise HTTPException(status_code=500, detail=f"Error querying ElectrumX: {e}")
