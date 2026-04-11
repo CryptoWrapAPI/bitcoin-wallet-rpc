@@ -14,7 +14,6 @@ All script hash conversions are handled in memory. SQLite can optionally be adde
 - **Transaction Details**: Fetch verbose transaction data for multiple tx hashes in a single batch request
 - **Balance Query**: Get confirmed and unconfirmed balances for wallet addresses
 - **Block Height Subscription**: Real-time block height notifications via ElectrumX subscription
-- **Health Check**: Monitor service connectivity
 - **Address-to-Script-Hash Conversion**: P2WPKH support for mainnet and testnet
 - **Comprehensive Error Handling**: Logging, connection recovery (1 reconnection attempt on failure)
 - **Batch Operations**: All blockchain queries are sent efficiently in a single batch
@@ -73,18 +72,6 @@ fastapi run
 API documentation available at `http://localhost:8000/docs`.
 
 ## API Endpoints
-
-### `GET /health`
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2026-04-09T20:00:00.000000+00:00"
-}
-```
 
 ### `GET /block-height`
 
