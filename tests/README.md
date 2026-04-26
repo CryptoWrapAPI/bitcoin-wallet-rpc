@@ -1,6 +1,6 @@
 # Tests
 
-Test scripts for the Litecoin Wallet RPC service. Each script targets a specific endpoint.
+Test scripts for the Bitcoin Wallet RPC service. Each script targets a specific endpoint.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Verifies the `/health` endpoint is responding correctly. No configuration needed
 ### `test_history.py`
 Tests the `/history` endpoint — fetches transaction history for wallet addresses.
 
-**Setup:** Add your Litecoin addresses (one per line) to `addrs.txt` in this directory. Lines starting with `#` are ignored.
+**Setup:** Add your Bitcoin addresses (one per line) to `addrs.txt` in this directory. Lines starting with `#` are ignored.
 
 ### `test_transactions.py`
 Tests the `/transactions` endpoint — fetches verbose details for transaction hashes.

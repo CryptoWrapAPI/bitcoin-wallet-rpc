@@ -33,7 +33,7 @@ try:
     if response.status_code == 200:
         print("\n✓ History request succeeded")
     else:
-        print(f"\n✗ History request failed")
+        print("\n✗ History request failed")
 except Exception as e:
     print(f"\n✗ Error: {e}")
 

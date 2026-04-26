@@ -1,6 +1,6 @@
-# Litecoin Wallet RPC Microservice
+# Bitcoin Wallet RPC Microservice
 
-A lightweight, FastAPI-based microservice providing RPC interaction with the Litecoin blockchain via ElectrumX servers. Designed to be integrated into larger applications, this service handles wallet derivations and blockchain interactions through a clean REST API.
+A lightweight, FastAPI-based microservice providing RPC interaction with the Bitcoin blockchain via ElectrumX servers. Designed to be integrated into larger applications, this service handles wallet derivations and blockchain interactions through a clean REST API.
 
 The project uses `asyncio` to establish a persistent connection to an ElectrumX server over TCP or SSL.
 Electrum Protocol Methods: https://electrumx.readthedocs.io/en/latest/protocol-methods.html
@@ -44,7 +44,7 @@ All script hash conversions are handled in memory. SQLite can optionally be adde
 ### 1. Create `.env` file
 
 ```
-ELECTRUMX_URL=ssl://electrum.ltc.xurious.com:51002
+ELECTRUMX_URL=ssl://<domain>:<port>
 TESTNET=true
 ENV_FILE=.env
 ```
@@ -109,7 +109,7 @@ Derivation path: `m/84'/coin'/account_index'/0/address_index`
 **Response:**
 ```json
 {
-  "address": "tltc1q90mr483lhf9nmygyzz0sye8tpv42le4g2272mf",
+  "address": "bc1...",
   "account_index": 0,
   "address_index": 0,
   "chain": "external"
@@ -124,8 +124,8 @@ Get transaction history for wallet addresses (batch operation).
 ```json
 {
   "addresses": [
-    "tltc1qk8yyn8v267d5sr2tum8tq7djxdqf0vulhth62y",
-    "tltc1qg9dvsx67z38uwzl4xvucktdc5tx66xgduykar4"
+    "bc1...",
+    "bc1..."
   ]
 }
 ```
@@ -133,7 +133,7 @@ Get transaction history for wallet addresses (batch operation).
 **Response:**
 ```json
 {
-  "tltc1qk8yyn8v267d5sr2tum8tq7djxdqf0vulhth62y": {
+  "bc1...": {
     "transactions": [
       { "height": 2500000, "tx_hash": "abc123..." },
       { "height": 0, "fee": 1000, "tx_hash": "def456..." }
@@ -152,8 +152,8 @@ Get verbose transaction details for transaction hashes (batch operation).
 ```json
 {
   "tx_hashes": [
-    "abc123def456abc123def456abc123def456abc123def456abc123def456abc1",
-    "fedcba987654fedcba987654fedcba987654fedcba987654fedcba987654fedc"
+    "abc123...",
+    "fed..."
   ]
 }
 ```
@@ -194,8 +194,8 @@ Get confirmed and unconfirmed balances for wallet addresses.
 ```json
 {
   "addresses": [
-    "tltc1qk8yyn8v267d5sr2tum8tq7djxdqf0vulhth62y",
-    "tltc1qg9dvsx67z38uwzl4xvucktdc5tx66xgduykar4"
+    "bc1...",
+    "bc1..."
   ]
 }
 ```
@@ -203,12 +203,12 @@ Get confirmed and unconfirmed balances for wallet addresses.
 **Response:**
 ```json
 {
-  "tltc1qk8yyn8v267d5sr2tum8tq7djxdqf0vulhth62y": {
+  "btc...": {
     "confirmed": 103873966,
     "unconfirmed": 23684400,
     "timestamp": "2026-04-09T20:00:00.000000+00:00"
   },
-  "tltc1qg9dvsx67z38uwzl4xvucktdc5tx66xgduykar4": {
+  "btc...": {
     "confirmed": 0,
     "unconfirmed": 0,
     "timestamp": "2026-04-09T20:00:00.000000+00:00"

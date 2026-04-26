@@ -1,4 +1,4 @@
-"""Simple Litecoin Wallet RPC - MVP with get_history only."""
+"""Simple Bitcoin Wallet RPC - MVP with get_history only."""
 
 import asyncio
 import json
@@ -35,8 +35,8 @@ log = logging.getLogger(__name__)
 # Environment variables
 ELECTRUMX_URL = os.getenv("ELECTRUMX_URL", "ssl://localhost:50002")
 IS_TESTNET = os.getenv("TESTNET", "false").lower() == "true"
-ADDRESS_HRP = "tltc" if IS_TESTNET else "ltc"
-NETWORK_TYPE = Bip84Coins.LITECOIN_TESTNET if IS_TESTNET else Bip84Coins.LITECOIN
+ADDRESS_HRP = "tb" if IS_TESTNET else "bc"
+NETWORK_TYPE = Bip84Coins.BITCOIN_TESTNET if IS_TESTNET else Bip84Coins.BITCOIN
 
 log.info(f"Config: ElectrumX={ELECTRUMX_URL}, Testnet={IS_TESTNET}, HRP={ADDRESS_HRP}")
 
@@ -47,7 +47,7 @@ log.info(f"Config: ElectrumX={ELECTRUMX_URL}, Testnet={IS_TESTNET}, HRP={ADDRESS
 
 
 def address_to_scripthash(address: str) -> str:
-    """Convert Litecoin bech32 address to ElectrumX script hash."""
+    """Convert Bitcoin bech32 address to ElectrumX script hash."""
     try:
         log.debug(f"Converting address {address} to script hash")
         decoder = P2WPKHAddrDecoder()
@@ -538,7 +538,7 @@ async def lifespan(app: FastAPI):
         current_block_hex, \
         last_block_update
 
-    log.info("Starting Litecoin Wallet RPC (MVP)")
+    log.info("Starting Bitcoin Wallet RPC (MVP)")
 
     # Connect to ElectrumX
     electrum_client = ElectrumXClient(ELECTRUMX_URL)
@@ -565,7 +565,7 @@ async def lifespan(app: FastAPI):
 # FastAPI App
 # ============================================================================
 
-app = FastAPI(title="Litecoin Wallet RPC", lifespan=lifespan)
+app = FastAPI(title="Bitcoin Wallet RPC", lifespan=lifespan)
 
 
 # ============================================================================

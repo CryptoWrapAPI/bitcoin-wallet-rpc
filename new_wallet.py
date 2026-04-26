@@ -27,13 +27,13 @@ ADDR_NUM: int = 5
 
 IS_TESTNET = os.getenv("TESTNET", "false").lower() == "true"
 
-NETWORK_TYPE = Bip84Coins.LITECOIN
-HRP = 'ltc'
+NETWORK_TYPE = Bip84Coins.BITCOIN
+HRP = 'bc'
 
 if IS_TESTNET:
     print("!!! TESTNET !!!")
-    NETWORK_TYPE = Bip84Coins.LITECOIN_TESTNET
-    HRP = 'tltc'
+    NETWORK_TYPE = Bip84Coins.BITCOIN_TESTNET
+    HRP = 'tb'
 
     
 
@@ -88,10 +88,10 @@ for i in range(ADDR_NUM):
 
 def address_to_scripthash(address: str) -> str:
     """
-    Convert a Litecoin bech32 address (P2WPKH) to ElectrumX-compatible script hash.
+    Convert a Bitcoin bech32 address (P2WPKH) to ElectrumX-compatible script hash.
 
     Args:
-        address: Litecoin bech32 address (starting with ltc1)
+        address: Bitcoin bech32 address (starting with bc1)
 
     Returns:
         Script hash as hex string in little-endian format (ElectrumX format)
@@ -100,7 +100,7 @@ def address_to_scripthash(address: str) -> str:
     from bip_utils import P2WPKHAddrDecoder
 
     # Decode the bech32 address to get the witness program
-    # For Litecoin, HRP is 'ltc'
+    # For Bitcoin, HRP is 'bc1'
     decoder = P2WPKHAddrDecoder()
     witness_program = decoder.DecodeAddr(address, hrp=HRP)
 
@@ -119,9 +119,9 @@ def address_to_scripthash(address: str) -> str:
 # Demonstrate the conversion with the first generated address
 if ADDR_NUM > 0:
     bip84_addr_ctx_0 = bip84_chg_ctx.AddressIndex(0)
-    ltc_address = bip84_addr_ctx_0.PublicKey().ToAddress()
-    scripthash = address_to_scripthash(ltc_address)
+    btc_address = bip84_addr_ctx_0.PublicKey().ToAddress()
+    scripthash = address_to_scripthash(btc_address)
     print("\nScript hash conversion:")
-    print(f"  Address: {ltc_address}")
+    print(f"  Address: {btc_address}")
     print(f"  Script hash (ElectrumX format): {scripthash}")
 

@@ -7,7 +7,7 @@ import json
 BASE_URL = "http://127.0.0.1:8101"
 
 # Configuration — change these values to test with your own master private key
-XPRV = "zprvAWgYBBk7JR8GkiSjUUwyhei9mSTEMd5ENS9xywYxsf6WLuFvq9eJjE7eFCjw3sT4AreK7cRiBgF4x8CiL5sPUhwZA3rBhFbKD1poA3iWQCg"  # Replace with your BIP84 master private key
+XPRV = "vprv9DMUxX4ShgxMMspZPJNbJWd8eMYGEusxaQGme5ayurx99988Yh4wmV7o1u4kbVNduTXEpTnZXXk9U5diNC5D4NamDBieVaqPKtwTwRM1Xj6"  # Replace with your BIP84 master private key
 ACCOUNT_INDEX = 0
 ADDRESS_INDEX = 0
 
@@ -33,7 +33,7 @@ try:
         data = response.json()
         print(f"\n✓ Derived address: {data['address']}")
     else:
-        print(f"\n✗ Derivation failed")
+        print("\n✗ Derivation failed")
 except Exception as e:
     print(f"\n✗ Error: {e}")
 
