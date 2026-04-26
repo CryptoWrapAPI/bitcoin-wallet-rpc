@@ -1,6 +1,8 @@
 # Bitcoin Wallet RPC Microservice
 
-A lightweight, FastAPI-based microservice providing RPC interaction with the Bitcoin blockchain via ElectrumX servers. Designed to be integrated into larger applications, this service handles wallet derivations and blockchain interactions through a clean REST API.
+A lightweight, FastAPI-based microservice providing RPC interaction with the Bitcoin blockchain via ElectrumX/Fulcrum protocol. Designed to be integrated into larger applications, this service handles wallet derivations and blockchain interactions through a clean REST API.
+
+Public ElectrumX/Fulcrum servers can be found here: https://1209k.com/bitcoin-eye/ele.php?chain=btc (Or you can setup your own!)
 
 The project uses `asyncio` to establish a persistent connection to an ElectrumX server over TCP or SSL.
 Electrum Protocol Methods: https://electrumx.readthedocs.io/en/latest/protocol-methods.html
